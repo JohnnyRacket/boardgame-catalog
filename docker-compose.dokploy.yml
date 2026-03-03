@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    command: sh -c "mkdir -p /data/boardgame-catalog-postgres && exec docker-entrypoint.sh postgres"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: boardgame_catalog
+      PGDATA: /data/boardgame-catalog-postgres
+    expose:
+      - 5432
+    volumes:
+      - postgres_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d boardgame_catalog"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrator:
+    build:
+      context: .
+      target: development
+    command: npm run db:migrate
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/boardgame_catalog
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+  app:
+    build:
+      context: .
+      target: runner
+    ports:
+      - 3000
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/boardgame_catalog
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    # Create the uploads subfolder on the CIFS share, then symlink it to where
+    # Next.js expects it so no application code changes are needed.
+    entrypoint: >
+      sh -c "mkdir -p /data/boardgame-catalog-uploads
+      && rm -rf /app/public/uploads
+      && ln -s /data/boardgame-catalog-uploads /app/public/uploads
+      && exec node server.js"
+    volumes:
+      - uploads_data:/data
+
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: cifs
+      o: "username=${SMB_USERNAME},password=${SMB_PASSWORD},vers=3.0,uid=70,gid=70"
+      device: "//zima.localdomain/zima-nas/applications"
+  uploads_data:
+    driver: local
+    driver_opts:
+      type: cifs
+      o: "username=${SMB_USERNAME},password=${SMB_PASSWORD},vers=3.0,uid=1001,gid=1001"
+      device: "//zima.localdomain/zima-nas/applications"
