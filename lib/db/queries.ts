@@ -58,10 +58,10 @@ export async function getFilteredGames(filters: Partial<FilterValues>) {
     base = base.where('complexity', '<=', filters.complexity_max)
   }
 
-if (filters.play_time.length > 0) {
+  if (filters.play_time && filters.play_time.length > 0) {
     base = base.where((eb) =>
       eb.or(
-        filters.play_time.map((t) =>
+        filters.play_time!.map((t) =>
           t >= 181
             ? eb('min_play_time', '>=', 180)
             : eb.and([
