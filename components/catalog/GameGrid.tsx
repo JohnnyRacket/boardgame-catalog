@@ -1,4 +1,5 @@
 import { GameCard } from './GameCard'
+import { AddGameButton } from '@/components/shared/AddGameButton'
 import type { Game } from '@/lib/db/types'
 
 interface GameGridProps {
@@ -12,12 +13,11 @@ export function GameGrid({ games }: GameGridProps) {
         <span className="text-6xl">🎲</span>
         <h3 className="mt-4 text-xl font-semibold">No games found</h3>
         <p className="mt-2 text-muted-foreground">
-          Try adjusting your filters or{' '}
-          <a href="/add" className="underline underline-offset-4">
-            add a game
-          </a>
-          .
+          Try adjusting your filters or add a game below.
         </p>
+        <div className="mt-4">
+          <AddGameButton />
+        </div>
       </div>
     )
   }
