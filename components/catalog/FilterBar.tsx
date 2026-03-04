@@ -50,14 +50,13 @@ export function FilterBar() {
     })
   }
 
-  if (filters.play_time !== null) {
-    const t = filters.play_time
+  filters.play_time.forEach((t) => {
     const label = t >= 181 ? '3hr+' : t >= 60 ? `~${t / 60}h` : `~${t}m`
     chips.push({
       label,
-      onRemove: () => setFilters({ play_time: null }),
+      onRemove: () => setFilters({ play_time: filters.play_time.filter((v) => v !== t) }),
     })
-  }
+  })
 
   if (filters.rating_min !== null) {
     chips.push({

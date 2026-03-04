@@ -24,7 +24,7 @@ services:
       target: development
     command: npm run db:migrate
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/boardgame_catalog
+      - DATABASE_URL=${DATABASE_URL}
     depends_on:
       db:
         condition: service_healthy
@@ -37,8 +37,7 @@ services:
     ports:
       - 3000
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/boardgame_catalog
-      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - DATABASE_URL=${DATABASE_URL}
     depends_on:
       migrator:
         condition: service_completed_successfully

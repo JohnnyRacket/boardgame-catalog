@@ -2,7 +2,6 @@
 
 import { useQueryStates } from 'nuqs'
 import { Separator } from '@/components/ui/separator'
-import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { COMPLEXITY_LABELS } from '@/lib/constants'
@@ -51,29 +50,6 @@ export function FilterSidebar({ genres }: FilterSidebarProps) {
 
   const set = (updates: Partial<typeof filters>) => setFilters({ ...updates, page: 1 })
 
-  const isFiltered =
-    filters.genres.length > 0 ||
-    filters.interaction ||
-    filters.players !== null ||
-    filters.complexity_min > 1 ||
-    filters.complexity_max < 5 ||
-    filters.play_time !== null ||
-    filters.rating_min !== null
-
-  function clearFilters() {
-    setFilters({
-      q: filters.q,
-      genres: [],
-      interaction: '',
-      players: null,
-      complexity_min: 1,
-      complexity_max: 5,
-      play_time: null,
-      rating_min: null,
-      page: 1,
-    })
-  }
-
   // Complexity range chip logic
   const isComplexityFiltered = !(filters.complexity_min === 1 && filters.complexity_max === 5)
   function isComplexityInRange(v: number) {
@@ -109,15 +85,6 @@ export function FilterSidebar({ genres }: FilterSidebarProps) {
 
   return (
     <aside className="flex w-full flex-col gap-5 lg:w-60 xl:w-64">
-
-      {/* Clear all */}
-      {isFiltered && (
-        <div className="flex items-center justify-end">
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={clearFilters}>
-            Clear all
-          </Button>
-        </div>
-      )}
 
       {/* Players */}
       <div className="space-y-2.5">
@@ -204,11 +171,16 @@ export function FilterSidebar({ genres }: FilterSidebarProps) {
         <SectionLabel icon={Clock} label="Play Time" />
         <div className="flex flex-wrap gap-1.5">
           {TIME_PRESETS.map(({ label, value }) => {
-            const selected = filters.play_time === value
+            const selected = filters.play_time.includes(value)
             return (
               <button
                 key={value}
-                onClick={() => set({ play_time: selected ? null : value })}
+                onClick={() => {
+                  const updated = selected
+                    ? filters.play_time.filter((v) => v !== value)
+                    : [...filters.play_time, value]
+                  set({ play_time: updated })
+                }}
                 className={cn(pillBase, 'px-3 py-1.5', selected ? pillOn : pillOff)}
               >
                 {label}

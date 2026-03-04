@@ -16,7 +16,7 @@ export const filterParsers = {
   players: parseAsInteger,
   complexity_min: parseAsInteger.withDefault(1),
   complexity_max: parseAsInteger.withDefault(5),
-  play_time: parseAsInteger,
+  play_time: parseAsArrayOf(parseAsInteger).withDefault([]),
   rating_min: parseAsFloat,
   sort: parseAsString.withDefault('name_asc'),
   page: parseAsInteger.withDefault(1),
@@ -31,7 +31,7 @@ export type FilterValues = {
   players: number | null
   complexity_min: number
   complexity_max: number
-  play_time: number | null
+  play_time: number[]
   rating_min: number | null
   sort: string
   page: number

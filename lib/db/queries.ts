@@ -58,15 +58,19 @@ export async function getFilteredGames(filters: Partial<FilterValues>) {
     base = base.where('complexity', '<=', filters.complexity_max)
   }
 
-  if (filters.play_time != null) {
-    if (filters.play_time >= 181) {
-      // "3hr+" — capture any game that takes at least 3 hours
-      base = base.where('min_play_time', '>=', 180)
-    } else {
-      base = base
-        .where('min_play_time', '<=', filters.play_time)
-        .where('max_play_time', '>=', filters.play_time)
-    }
+if (filters.play_time.length > 0) {
+    base = base.where((eb) =>
+      eb.or(
+        filters.play_time.map((t) =>
+          t >= 181
+            ? eb('min_play_time', '>=', 180)
+            : eb.and([
+                eb('min_play_time', '<=', t),
+                eb('max_play_time', '>=', t),
+              ])
+        )
+      )
+    )
   }
 
   if (filters.rating_min != null) {
