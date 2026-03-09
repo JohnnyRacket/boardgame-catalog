@@ -116,6 +116,17 @@ export async function upsertGenres(names: string[]): Promise<void> {
     .execute()
 }
 
+export async function getGamesByNames(names: string[]): Promise<string[]> {
+  if (names.length === 0) return []
+  const lower = names.map((n) => n.toLowerCase())
+  const rows = await db
+    .selectFrom('games')
+    .select('name')
+    .where(sql<boolean>`lower(name) = ANY(${sql.val(lower)}::text[])`)
+    .execute()
+  return rows.map((r) => r.name.toLowerCase())
+}
+
 export async function updateGame(id: number, data: GameUpdate): Promise<void> {
   await db.updateTable('games').set(data).where('id', '=', id).execute()
 }

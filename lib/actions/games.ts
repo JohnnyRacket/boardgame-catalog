@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { addGameSchema } from '@/lib/validations/game'
-import { insertGame, upsertGenres, updateGameRating, updateGame } from '@/lib/db/queries'
+import { insertGame, upsertGenres, updateGameRating, updateGame, getGamesByNames } from '@/lib/db/queries'
 import { isAuthenticated } from '@/lib/auth'
 
 export type ActionState = {
@@ -51,6 +51,14 @@ export async function addGameAction(
   }
 
   const data = result.data
+
+  const existing = await getGamesByNames([data.name])
+  if (existing.length > 0) {
+    return {
+      errors: { name: [`"${data.name}" is already in your collection.`] },
+      message: 'This game already exists in your catalog.',
+    }
+  }
 
   try {
     await insertGame({
@@ -185,6 +193,11 @@ export async function updateRatingAction(
   revalidatePath('/')
   revalidatePath('/games/[id]', 'page')
   return {}
+}
+
+export async function checkDuplicateNamesAction(names: string[]): Promise<string[]> {
+  if (!(await isAuthenticated())) return []
+  return getGamesByNames(names)
 }
 
 export async function updateRatingDirectAction(

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AddGameForm } from './AddGameForm'
 import type { BggGameData, BggSearchResult } from '@/lib/types/bgg'
+import { checkDuplicateNamesAction } from '@/lib/actions/games'
 
 type Step =
   | { kind: 'search' }
@@ -29,6 +30,7 @@ export function BggImportDialog({ open, onOpenChange }: BggImportDialogProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<BggSearchResult[]>([])
   const [selectingId, setSelectingId] = useState<number | null>(null)
+  const [duplicateNames, setDuplicateNames] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [manualLoading, setManualLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,6 +42,7 @@ export function BggImportDialog({ open, onOpenChange }: BggImportDialogProps) {
       setResults([])
       setSelectingId(null)
       setError(null)
+      setDuplicateNames(new Set())
     }
     onOpenChange(next)
   }
@@ -77,6 +80,8 @@ export function BggImportDialog({ open, onOpenChange }: BggImportDialogProps) {
       const searchResults: BggSearchResult[] = data
       setResults(searchResults)
       setStep({ kind: 'results', results: searchResults })
+      const found = await checkDuplicateNamesAction(searchResults.map((r) => r.name))
+      setDuplicateNames(new Set(found))
     } catch {
       setError('Network error. Please try again.')
     } finally {
@@ -203,10 +208,17 @@ export function BggImportDialog({ open, onOpenChange }: BggImportDialogProps) {
                       onClick={() => handleSelectResult(result.id)}
                       disabled={selectingId !== null}
                     >
-                      <span>
-                        {result.name}
-                        {result.year && (
-                          <span className="text-muted-foreground ml-1">({result.year})</span>
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="truncate">
+                          {result.name}
+                          {result.year && (
+                            <span className="text-muted-foreground ml-1">({result.year})</span>
+                          )}
+                        </span>
+                        {duplicateNames.has(result.name.toLowerCase()) && (
+                          <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700 font-medium dark:bg-amber-950 dark:text-amber-400">
+                            Already in collection
+                          </span>
                         )}
                       </span>
                       {selectingId === result.id && (
