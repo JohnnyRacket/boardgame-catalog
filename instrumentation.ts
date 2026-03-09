@@ -27,8 +27,8 @@ export async function register() {
     if (error) {
       const isConnErr =
         (error as { code?: string }).code === 'ECONNREFUSED' ||
-        error.message?.includes('ECONNREFUSED') ||
-        error.message?.includes('connect')
+        (error as { message?: string }).message?.includes('ECONNREFUSED') ||
+        (error as { message?: string }).message?.includes('connect')
       if (isConnErr) {
         console.warn('Database unavailable at startup — skipping migrations. App will show error pages.')
       } else {
