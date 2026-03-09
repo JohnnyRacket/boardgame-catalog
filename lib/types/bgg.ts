@@ -1,3 +1,9 @@
+export interface BggSearchResult {
+  id: number
+  name: string
+  year?: number
+}
+
 export interface BggGameData {
   name?: string
   year_published?: number
@@ -12,4 +18,6 @@ export interface BggGameData {
   image_url?: string
   designer?: string
   publisher?: string
+  bgg_rating?: number
+  best_with?: number
 }

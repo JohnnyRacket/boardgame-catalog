@@ -15,8 +15,9 @@ export const addGameSchema = z.object({
   max_play_time: z.coerce.number().int().min(1).max(9999).optional(),
   complexity: z.coerce.number().int().min(1).max(5).optional(),
   player_interaction: z
-    .enum(['cooperative', 'competitive', 'hybrid'])
+    .enum(['cooperative', 'competitive', 'teams'])
     .optional(),
+  best_with: z.coerce.number().int().min(1).max(20).optional(),
   genres: z.array(z.string()).optional(),
   user_rating: z.coerce.number().min(1).max(10).optional(),
 })

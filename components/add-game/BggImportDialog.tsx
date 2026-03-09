@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Loader2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -12,10 +12,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AddGameForm } from './AddGameForm'
-import type { BggGameData } from '@/lib/types/bgg'
+import type { BggGameData, BggSearchResult } from '@/lib/types/bgg'
 
 type Step =
-  | { kind: 'url' }
+  | { kind: 'search' }
+  | { kind: 'results'; results: BggSearchResult[] }
   | { kind: 'form'; data?: BggGameData; genres: string[] }
 
 interface BggImportDialogProps {
@@ -24,17 +25,20 @@ interface BggImportDialogProps {
 }
 
 export function BggImportDialog({ open, onOpenChange }: BggImportDialogProps) {
-  const [step, setStep] = useState<Step>({ kind: 'url' })
-  const [url, setUrl] = useState('')
+  const [step, setStep] = useState<Step>({ kind: 'search' })
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<BggSearchResult[]>([])
+  const [selectingId, setSelectingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [manualLoading, setManualLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   function handleOpenChange(next: boolean) {
     if (!next) {
-      // Reset to url step on close
-      setStep({ kind: 'url' })
-      setUrl('')
+      setStep({ kind: 'search' })
+      setQuery('')
+      setResults([])
+      setSelectingId(null)
       setError(null)
     }
     onOpenChange(next)
@@ -54,24 +58,48 @@ export function BggImportDialog({ open, onOpenChange }: BggImportDialogProps) {
     }
   }
 
-  async function handleImport(e: React.FormEvent) {
+  async function handleSearch(e: React.FormEvent) {
     e.preventDefault()
+    const q = query.trim()
+    if (!q) {
+      setError('Please enter a game name to search.')
+      return
+    }
     setError(null)
     setLoading(true)
+    try {
+      const res = await fetch(`/api/bgg?q=${encodeURIComponent(q)}`)
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? 'Search failed. Please try again.')
+        return
+      }
+      const searchResults: BggSearchResult[] = data
+      setResults(searchResults)
+      setStep({ kind: 'results', results: searchResults })
+    } catch {
+      setError('Network error. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
+  async function handleSelectResult(id: number) {
+    setSelectingId(id)
+    setError(null)
     try {
       const [bggRes, genresRes] = await Promise.all([
         fetch('/api/bgg', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url }),
+          body: JSON.stringify({ id }),
         }),
         fetch('/api/genres'),
       ])
 
       const bggData = await bggRes.json()
       if (!bggRes.ok) {
-        setError(bggData.error ?? 'Failed to import game data')
+        setError(bggData.error ?? 'Failed to fetch game details.')
         return
       }
 
@@ -82,7 +110,7 @@ export function BggImportDialog({ open, onOpenChange }: BggImportDialogProps) {
     } catch {
       setError('Network error. Please try again.')
     } finally {
-      setLoading(false)
+      setSelectingId(null)
     }
   }
 
@@ -96,21 +124,21 @@ export function BggImportDialog({ open, onOpenChange }: BggImportDialogProps) {
       >
         <DialogHeader>
           <DialogTitle>
-            {step.kind === 'url' ? 'Import from BoardGameGeek' : 'Add Game'}
+            {step.kind === 'form' ? 'Add Game' : 'Import from BoardGameGeek'}
           </DialogTitle>
         </DialogHeader>
 
-        {step.kind === 'url' ? (
-          <form onSubmit={handleImport} className="space-y-4">
+        {step.kind === 'search' && (
+          <form onSubmit={handleSearch} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="bgg-url">BoardGameGeek URL</Label>
+              <Label htmlFor="bgg-search">Game name</Label>
               <Input
-                id="bgg-url"
-                type="url"
-                placeholder="https://boardgamegeek.com/boardgame/13/catan"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                required
+                id="bgg-search"
+                type="text"
+                placeholder="Search for a game…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                autoFocus
               />
             </div>
 
@@ -122,7 +150,7 @@ export function BggImportDialog({ open, onOpenChange }: BggImportDialogProps) {
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <Button type="submit" disabled={loading || manualLoading} className="w-full sm:w-auto">
-                {loading ? 'Importing…' : 'Import'}
+                {loading ? 'Searching…' : 'Search'}
               </Button>
               <span className="text-sm text-muted-foreground text-center sm:text-left">or</span>
               <Button
@@ -136,7 +164,9 @@ export function BggImportDialog({ open, onOpenChange }: BggImportDialogProps) {
               </Button>
             </div>
           </form>
-        ) : (
+        )}
+
+        {step.kind === 'results' && (
           <div className="space-y-4">
             <Button
               type="button"
@@ -144,12 +174,66 @@ export function BggImportDialog({ open, onOpenChange }: BggImportDialogProps) {
               size="sm"
               className="-ml-2 text-muted-foreground"
               onClick={() => {
-                setStep({ kind: 'url' })
+                setStep({ kind: 'search' })
+                setError(null)
+              }}
+              disabled={selectingId !== null}
+            >
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Back to search
+            </Button>
+
+            {error && (
+              <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </p>
+            )}
+
+            {step.results.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                No results found. Try a different search term.
+              </p>
+            ) : (
+              <ul className="divide-y rounded-md border">
+                {step.results.map((result) => (
+                  <li key={result.id}>
+                    <button
+                      type="button"
+                      className="w-full flex items-center justify-between px-4 py-3 text-left text-sm hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => handleSelectResult(result.id)}
+                      disabled={selectingId !== null}
+                    >
+                      <span>
+                        {result.name}
+                        {result.year && (
+                          <span className="text-muted-foreground ml-1">({result.year})</span>
+                        )}
+                      </span>
+                      {selectingId === result.id && (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {step.kind === 'form' && (
+          <div className="space-y-4">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="-ml-2 text-muted-foreground"
+              onClick={() => {
+                setStep({ kind: 'results', results })
                 setError(null)
               }}
             >
               <ArrowLeft className="mr-1 h-4 w-4" />
-              Back to URL input
+              Back to search results
             </Button>
             <AddGameForm
               genres={step.genres}

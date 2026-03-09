@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Brain, Clock, Pencil, Star } from 'lucide-react'
+import { Brain, Clock, Crown, Pencil, Star } from 'lucide-react'
 import { useQueryState, parseAsInteger } from 'nuqs'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -12,10 +12,11 @@ import { COMPLEXITY_LABELS } from '@/lib/constants'
 import type { Game } from '@/lib/db/types'
 
 interface GameCardProps {
+  authenticated: boolean
   game: Game
 }
 
-export function GameCard({ game }: GameCardProps) {
+export function GameCard({ game, authenticated }: GameCardProps) {
   const [, setGame] = useQueryState('game', parseAsInteger.withOptions({ shallow: false }))
 
   const playTime =
@@ -67,6 +68,12 @@ export function GameCard({ game }: GameCardProps) {
           <CardContent className="flex flex-1 flex-col gap-2 px-3 pt-2 pb-3">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <PlayerCount min={game.min_players} max={game.max_players} />
+              {game.best_with && (
+                <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Crown className="h-3.5 w-3.5" />
+                  {game.best_with}
+                </span>
+              )}
               {playTime && (
                 <span className="flex items-center gap-1 text-sm text-muted-foreground">
                   <Clock className="h-3.5 w-3.5" />
@@ -99,13 +106,15 @@ export function GameCard({ game }: GameCardProps) {
           </CardContent>
         </Card>
       </div>
-      <Link
-        href={`/games/${game.id}/edit`}
-        className="absolute top-2 right-2 z-10 rounded-md bg-background/80 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
-        aria-label="Edit game"
-      >
-        <Pencil className="size-3.5" />
-      </Link>
+      {authenticated && (
+        <Link
+          href={`/games/${game.id}/edit`}
+          className="absolute top-2 right-2 z-10 rounded-md bg-background/80 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+          aria-label="Edit game"
+        >
+          <Pencil className="size-3.5" />
+        </Link>
+      )}
     </div>
   )
 }

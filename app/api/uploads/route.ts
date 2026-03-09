@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { randomUUID } from 'crypto'
+import { isAuthenticatedFromRequest } from '@/lib/auth'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_SIZE = 5 * 1024 * 1024 // 5MB
 
 export async function POST(request: NextRequest) {
+  if (!isAuthenticatedFromRequest(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   const formData = await request.formData()
   const file = formData.get('file')
 
@@ -32,11 +36,14 @@ export async function POST(request: NextRequest) {
   const filename = `${randomUUID()}.${ext}`
   const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
 
-  await mkdir(uploadsDir, { recursive: true })
-
-  const bytes = await file.arrayBuffer()
-  const buffer = Buffer.from(bytes)
-  await writeFile(path.join(uploadsDir, filename), buffer)
-
-  return NextResponse.json({ url: `/uploads/${filename}` })
+  try {
+    await mkdir(uploadsDir, { recursive: true })
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+    await writeFile(path.join(uploadsDir, filename), buffer)
+    return NextResponse.json({ url: `/uploads/${filename}` })
+  } catch (err) {
+    console.error('Upload failed:', err)
+    return NextResponse.json({ error: 'Failed to save file' }, { status: 500 })
+  }
 }

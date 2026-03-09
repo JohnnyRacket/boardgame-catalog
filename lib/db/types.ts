@@ -21,7 +21,8 @@ interface GamesTable {
   min_play_time: number | null
   max_play_time: number | null
   complexity: number | null
-  player_interaction: 'cooperative' | 'competitive' | 'hybrid' | null
+  player_interaction: 'cooperative' | 'competitive' | 'teams' | null
+  best_with: number | null
   genres: string[] | null
   user_rating: number | null
   created_at: ColumnType<Date, string | undefined, never>

@@ -40,7 +40,7 @@ export async function getFilteredGames(filters: Partial<FilterValues>) {
     base = base.where(
       'player_interaction',
       '=',
-      filters.interaction as 'cooperative' | 'competitive' | 'hybrid'
+      filters.interaction as 'cooperative' | 'competitive' | 'teams'
     )
   }
 

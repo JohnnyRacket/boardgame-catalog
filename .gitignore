@@ -41,6 +41,10 @@ yarn-error.log*
 /public/uploads/*
 !/public/uploads/.gitkeep
 
+# BGG API response logs
+/logs/bgg/*
+!/logs/bgg/.gitkeep
+
 # vercel
 .vercel
 

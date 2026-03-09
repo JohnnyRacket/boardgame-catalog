@@ -10,9 +10,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:migrate": "kysely migrate:latest",
-    "db:migrate:down": "kysely migrate:down",
-    "db:migrate:new": "kysely migrate:make"
+    "db:migrate": "tsx node_modules/.bin/kysely migrate:latest",
+    "db:migrate:down": "tsx node_modules/.bin/kysely migrate:down",
+    "db:migrate:new": "tsx node_modules/.bin/kysely migrate:make"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.63",

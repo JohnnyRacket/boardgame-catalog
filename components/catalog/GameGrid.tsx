@@ -4,9 +4,10 @@ import type { Game } from '@/lib/db/types'
 
 interface GameGridProps {
   games: Game[]
+  authenticated: boolean
 }
 
-export function GameGrid({ games }: GameGridProps) {
+export function GameGrid({ games, authenticated }: GameGridProps) {
   if (games.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -15,9 +16,11 @@ export function GameGrid({ games }: GameGridProps) {
         <p className="mt-2 text-muted-foreground">
           Try adjusting your filters or add a game below.
         </p>
-        <div className="mt-4">
-          <AddGameButton />
-        </div>
+        {authenticated && (
+          <div className="mt-4">
+            <AddGameButton />
+          </div>
+        )}
       </div>
     )
   }
@@ -25,7 +28,7 @@ export function GameGrid({ games }: GameGridProps) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {games.map((game) => (
-        <GameCard key={game.id} game={game} />
+        <GameCard key={game.id} game={game} authenticated={authenticated} />
       ))}
     </div>
   )

@@ -4,7 +4,7 @@ import { INTERACTION_LABELS } from '@/lib/constants'
 const colorMap: Record<string, string> = {
   cooperative: 'bg-blue-100 text-blue-800 hover:bg-blue-100',
   competitive: 'bg-rose-100 text-rose-800 hover:bg-rose-100',
-  hybrid: 'bg-purple-100 text-purple-800 hover:bg-purple-100',
+  teams: 'bg-amber-100 text-amber-800 hover:bg-amber-100',
 }
 
 interface InteractionBadgeProps {

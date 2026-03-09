@@ -9,7 +9,7 @@ export const COMPLEXITY_LABELS: Record<number, string> = {
 export const INTERACTION_LABELS: Record<string, string> = {
   cooperative: 'Cooperative',
   competitive: 'Competitive',
-  hybrid: 'Hybrid',
+  teams: 'Teams',
 }
 
 export const SORT_OPTIONS = [

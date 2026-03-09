@@ -30,6 +30,7 @@ const COMPLEXITY_STEPS = [
 const INTERACTION_OPTIONS = [
   { value: 'cooperative', label: 'Co-op',       emoji: '🤝' },
   { value: 'competitive', label: 'Competitive', emoji: '⚔️' },
+  { value: 'teams',       label: 'Teams',       emoji: '👥' },
 ]
 
 function SectionLabel({ icon: Icon, label }: { icon: React.ElementType; label: string }) {

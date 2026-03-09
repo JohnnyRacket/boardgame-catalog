@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { BggGameData } from '@/lib/types/bgg'
+import type { BggGameData, BggSearchResult } from '@/lib/types/bgg'
+import { isAuthenticatedFromRequest } from '@/lib/auth'
 
-const BGG_URL_RE = /^https:\/\/boardgamegeek\.com\/boardgame\/(\d+)\/[\w-]+$/
 
 function decodeHtmlEntities(str: string): string {
   return str
@@ -9,6 +9,14 @@ function decodeHtmlEntities(str: string): string {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
+    .replace(/&rsquo;/g, '\u2019')
+    .replace(/&lsquo;/g, '\u2018')
+    .replace(/&rdquo;/g, '\u201D')
+    .replace(/&ldquo;/g, '\u201C')
+    .replace(/&mdash;/g, '\u2014')
+    .replace(/&ndash;/g, '\u2013')
+    .replace(/&hellip;/g, '\u2026')
+    .replace(/&nbsp;/g, ' ')
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
 }
 
@@ -79,32 +87,62 @@ async function fetchXml(url: string): Promise<string> {
   return res.text()
 }
 
+export async function GET(req: NextRequest) {
+  if (!isAuthenticatedFromRequest(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const q = req.nextUrl.searchParams.get('q')?.trim()
+  if (!q) {
+    return NextResponse.json({ error: 'Missing query parameter: q' }, { status: 400 })
+  }
+
+  const searchUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(q)}&type=boardgame`
+  let xml: string
+  try {
+    xml = await fetchXml(searchUrl)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return NextResponse.json({ error: `Failed to fetch BGG data: ${msg}` }, { status: 502 })
+  }
+
+  // Parse all <item type="boardgame" id="..."> blocks
+  const itemRe = /<item\s+type="boardgame"\s+id="(\d+)"[^>]*>([\s\S]*?)<\/item>/gi
+  const results: BggSearchResult[] = []
+  let m: RegExpExecArray | null
+  while ((m = itemRe.exec(xml)) !== null && results.length < 20) {
+    const id = Number(m[1])
+    const block = m[2]
+    const nameMatch = block.match(/<name\s+type="primary"[^>]+value="([^"]*)"/i)
+    const name = nameMatch ? decodeHtmlEntities(nameMatch[1]) : undefined
+    if (!name) continue
+    const yearMatch = block.match(/<yearpublished\s+value="(\d+)"/i)
+    const year = yearMatch ? Number(yearMatch[1]) : undefined
+    results.push({ id, name, ...(year ? { year } : {}) })
+  }
+
+  return NextResponse.json(results)
+}
+
 export async function POST(req: NextRequest) {
-  let body: { url?: string }
+  if (!isAuthenticatedFromRequest(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  let body: { id?: unknown }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const urlMatch = body.url?.match(BGG_URL_RE)
-  if (!urlMatch) {
-    return NextResponse.json(
-      {
-        error:
-          'Invalid BoardGameGeek URL. Expected format: https://boardgamegeek.com/boardgame/123/game-name',
-      },
-      { status: 400 }
-    )
+  const id = body.id
+  if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0) {
+    return NextResponse.json({ error: 'Body must include a positive integer "id"' }, { status: 400 })
   }
 
-  const gameId = urlMatch[1]
-
+  const detailUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${id}&stats=1&ratingcomments=1`
   let xml: string
   try {
-    xml = await fetchXml(
-      `https://boardgamegeek.com/xmlapi2/thing?id=${gameId}&stats=1`
-    )
+    xml = await fetchXml(detailUrl)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error: `Failed to fetch BGG data: ${msg}` }, { status: 502 })
@@ -133,7 +171,7 @@ export async function POST(req: NextRequest) {
   const image_url = xmlTagText(xml, 'image')?.trim() || undefined
 
   // Genres from boardgamecategory links
-  const genres = xmlLinkValues(xml, 'boardgamecategory')
+  const genres = xmlLinkValues(xml, 'boardgamecategory').map(decodeHtmlEntities).filter((g) => g.length <= 24)
 
   // Designer (first entry)
   const designer = xmlLinkValues(xml, 'boardgamedesigner')[0]
@@ -147,6 +185,37 @@ export async function POST(req: NextRequest) {
   if (weightStr) {
     const w = parseFloat(weightStr)
     if (w > 0) complexity = Math.max(1, Math.min(5, Math.round(w)))
+  }
+
+  // Average community rating from stats block
+  let bgg_rating: number | undefined
+  const avgStr = xml.match(/<average\s+value="([^"]*)"/)?.[1]
+  if (avgStr) {
+    const avg = parseFloat(avgStr)
+    if (avg > 0) bgg_rating = Math.round(avg * 10) / 10
+  }
+
+  // Best with: parse suggested_numplayers poll to find player count with most "Best" votes
+  let best_with: number | undefined
+  const pollMatch = xml.match(/<poll\s+name="suggested_numplayers"[\s\S]*?<\/poll>/)
+  if (pollMatch) {
+    const pollXml = pollMatch[0]
+    const resultsRe = /<results\s+numplayers="(\d+)"[^>]*>([\s\S]*?)<\/results>/g
+    let bestCount = 0
+    let rm: RegExpExecArray | null
+    while ((rm = resultsRe.exec(pollXml)) !== null) {
+      const n = parseInt(rm[1], 10)
+      const block = rm[2]
+      const bestMatch = block.match(/<result\s+value="Best"\s+numvotes="(\d+)"/)
+      if (bestMatch) {
+        const votes = parseInt(bestMatch[1], 10)
+        if (votes > bestCount) {
+          bestCount = votes
+          best_with = n
+        }
+      }
+    }
+    if (bestCount === 0) best_with = undefined
   }
 
   const data: BggGameData = {
@@ -163,6 +232,8 @@ export async function POST(req: NextRequest) {
     image_url,
     designer,
     publisher,
+    bgg_rating,
+    best_with,
   }
 
   return NextResponse.json(data)

@@ -25,8 +25,16 @@ export async function register() {
     }
 
     if (error) {
-      console.error('Migration failed:', error)
-      process.exit(1)
+      const isConnErr =
+        (error as { code?: string }).code === 'ECONNREFUSED' ||
+        error.message?.includes('ECONNREFUSED') ||
+        error.message?.includes('connect')
+      if (isConnErr) {
+        console.warn('Database unavailable at startup — skipping migrations. App will show error pages.')
+      } else {
+        console.error('Migration failed:', error)
+        process.exit(1)
+      }
     }
   }
 }

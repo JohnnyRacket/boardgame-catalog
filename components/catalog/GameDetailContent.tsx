@@ -1,5 +1,8 @@
+'use client'
+
+import { useState } from 'react'
 import Image from 'next/image'
-import { Brain, Clock, Users, Calendar, Star } from 'lucide-react'
+import { Brain, Clock, Crown, Users, Calendar, Star } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { COMPLEXITY_LABELS } from '@/lib/constants'
 import { InteractionBadge } from '@/components/shared/InteractionBadge'
@@ -12,6 +15,8 @@ interface GameDetailContentProps {
 }
 
 export function GameDetailContent({ game }: GameDetailContentProps) {
+  const [descExpanded, setDescExpanded] = useState(false)
+
   const playTime =
     game.min_play_time && game.max_play_time
       ? game.min_play_time === game.max_play_time
@@ -67,6 +72,12 @@ export function GameDetailContent({ game }: GameDetailContentProps) {
             <Users className="h-4 w-4" />
             {players} players
           </span>
+          {game.best_with && (
+            <span className="flex items-center gap-1.5">
+              <Crown className="h-4 w-4" />
+              Best with {game.best_with}
+            </span>
+          )}
           {playTime && (
             <span className="flex items-center gap-1.5">
               <Clock className="h-4 w-4" />
@@ -117,7 +128,15 @@ export function GameDetailContent({ game }: GameDetailContentProps) {
         )}
 
         {game.description && (
-          <p className="text-sm text-muted-foreground leading-relaxed">{game.description}</p>
+          <div className="text-sm text-muted-foreground leading-relaxed">
+            <p className={descExpanded ? undefined : 'line-clamp-5'}>{game.description}</p>
+            <button
+              onClick={() => setDescExpanded((v) => !v)}
+              className="mt-1 text-xs font-medium text-foreground hover:underline"
+            >
+              {descExpanded ? 'Show less' : 'Show more'}
+            </button>
+          </div>
         )}
 
         <div className="mt-auto pt-2 border-t space-y-3">

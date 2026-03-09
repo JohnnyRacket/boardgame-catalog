@@ -1,8 +1,11 @@
 import Link from 'next/link'
-import { Dices } from 'lucide-react'
+import { Dices, Lock } from 'lucide-react'
 import { AddGameButton } from '@/components/shared/AddGameButton'
+import { isAuthenticated } from '@/lib/auth'
 
-export function Navbar() {
+export async function Navbar() {
+  const authenticated = await isAuthenticated()
+
   return (
     <nav className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-14 items-center justify-between px-4">
@@ -10,7 +13,16 @@ export function Navbar() {
           <Dices className="h-5 w-5" />
           <span>BoardGame Catalog</span>
         </Link>
-        <AddGameButton />
+        {authenticated ? (
+          <AddGameButton />
+        ) : (
+          <Link
+            href="/login"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Lock className="h-4 w-4" />
+          </Link>
+        )}
       </div>
     </nav>
   )

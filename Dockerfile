@@ -1,19 +1,19 @@
 # Stage 1: Install dependencies
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json ./
 RUN npm install
 
 # Stage 2: Development (hot reload, mounts source via volume)
-FROM node:20-alpine AS development
+FROM node:22-alpine AS development
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NODE_ENV=development
 
 # Stage 3: Build
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -21,7 +21,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # Stage 4: Runner
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

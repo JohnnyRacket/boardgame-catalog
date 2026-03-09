@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { addGameSchema } from '@/lib/validations/game'
 import { insertGame, upsertGenres, updateGameRating, updateGame } from '@/lib/db/queries'
+import { isAuthenticated } from '@/lib/auth'
 
 export type ActionState = {
   errors?: Record<string, string[]>
@@ -14,6 +15,7 @@ export async function addGameAction(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
+  if (!(await isAuthenticated())) return { message: 'Unauthorized. Please sign in.' }
   const raw = {
     name: formData.get('name'),
     description: formData.get('description') || undefined,
@@ -29,6 +31,7 @@ export async function addGameAction(
     max_play_time: formData.get('max_play_time') || undefined,
     complexity: formData.get('complexity') || undefined,
     player_interaction: formData.get('player_interaction') || undefined,
+    best_with: formData.get('best_with') || undefined,
     genres: formData
       .get('genres_hidden')
       ?.toString()
@@ -65,6 +68,7 @@ export async function addGameAction(
       max_play_time: data.max_play_time ?? null,
       complexity: data.complexity ?? null,
       player_interaction: data.player_interaction ?? null,
+      best_with: data.best_with ?? null,
       genres: data.genres?.length ? data.genres : null,
       user_rating: data.user_rating ?? null,
     })
@@ -82,6 +86,7 @@ export async function updateGameAction(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
+  if (!(await isAuthenticated())) return { message: 'Unauthorized. Please sign in.' }
   const rawId = formData.get('game_id')
   const id = rawId ? parseInt(rawId.toString(), 10) : NaN
   if (isNaN(id)) return { message: 'Invalid game ID.' }
@@ -101,6 +106,7 @@ export async function updateGameAction(
     max_play_time: formData.get('max_play_time') || undefined,
     complexity: formData.get('complexity') || undefined,
     player_interaction: formData.get('player_interaction') || undefined,
+    best_with: formData.get('best_with') || undefined,
     genres: formData
       .get('genres_hidden')
       ?.toString()
@@ -136,6 +142,7 @@ export async function updateGameAction(
       max_play_time: data.max_play_time ?? null,
       complexity: data.complexity ?? null,
       player_interaction: data.player_interaction ?? null,
+      best_with: data.best_with ?? null,
       genres: data.genres?.length ? data.genres : null,
     })
     await upsertGenres(data.genres ?? [])
@@ -153,6 +160,7 @@ export async function updateRatingAction(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
+  if (!(await isAuthenticated())) return { message: 'Unauthorized. Please sign in.' }
   const rawId = formData.get('game_id')
   const rawRating = formData.get('rating')
 
@@ -183,6 +191,7 @@ export async function updateRatingDirectAction(
   gameId: number,
   rating: number | null
 ): Promise<ActionState> {
+  if (!(await isAuthenticated())) return { message: 'Unauthorized. Please sign in.' }
   if (rating !== null && (isNaN(rating) || rating < 1 || rating > 10)) {
     return { message: 'Rating must be between 1 and 10.' }
   }

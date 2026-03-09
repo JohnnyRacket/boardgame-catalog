@@ -177,6 +177,7 @@ export function AddGameForm({ genres, defaultValues }: AddGameFormProps) {
               min={1}
               max={10}
               step={0.1}
+              defaultValue={defaultValues?.bgg_rating ?? ''}
             />
           </div>
         </div>
@@ -207,9 +208,22 @@ export function AddGameForm({ genres, defaultValues }: AddGameFormProps) {
               <SelectContent>
                 <SelectItem value="cooperative">Cooperative</SelectItem>
                 <SelectItem value="competitive">Competitive</SelectItem>
-                <SelectItem value="hybrid">Hybrid</SelectItem>
+                <SelectItem value="teams">Teams</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="best_with">Best With (players)</Label>
+            <Input
+              id="best_with"
+              name="best_with"
+              type="number"
+              min={1}
+              max={20}
+              defaultValue={defaultValues?.best_with ?? ''}
+            />
+            <FieldError errors={state.errors?.best_with} />
           </div>
         </div>
       </section>
