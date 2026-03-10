@@ -142,3 +142,11 @@ export async function updateGameRating(id: number, rating: number | null): Promi
 export async function updateGameRulesSummary(id: number, summary: string): Promise<void> {
   await db.updateTable('games').set({ rules_summary: summary }).where('id', '=', id).execute()
 }
+
+export async function getAllGames() {
+  return db.selectFrom('games').selectAll().orderBy('name', 'asc').execute()
+}
+
+export async function deleteAllGames(): Promise<void> {
+  await db.deleteFrom('games').execute()
+}

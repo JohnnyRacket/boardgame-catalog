@@ -2,7 +2,7 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  serverExternalPackages: ['pg', 'unpdf'],
+  serverExternalPackages: ['pg', 'unpdf', 'archiver', 'unzipper'],
   images: {
     remotePatterns: [
       {
