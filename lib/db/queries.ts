@@ -59,18 +59,26 @@ export async function getFilteredGames(filters: Partial<FilterValues>) {
   }
 
   if (filters.play_time && filters.play_time.length > 0) {
-    base = base.where((eb) =>
-      eb.or(
-        filters.play_time!.map((t) =>
-          t >= 181
-            ? eb('min_play_time', '>=', 180)
-            : eb.and([
-                eb('min_play_time', '<=', t),
-                eb('max_play_time', '>=', t),
-              ])
+    const times = filters.play_time
+    const has3hrPlus = times.some((t) => t >= 181)
+    const finiteTimes = times.filter((t) => t < 181)
+    base = base.where((eb) => {
+      const conditions = []
+      if (finiteTimes.length > 0) {
+        const minSelected = Math.min(...finiteTimes)
+        const maxSelected = Math.max(...finiteTimes)
+        conditions.push(
+          eb.and([
+            eb('min_play_time', '<=', maxSelected),
+            eb('max_play_time', '>=', minSelected),
+          ])
         )
-      )
-    )
+      }
+      if (has3hrPlus) {
+        conditions.push(eb('min_play_time', '>=', 180))
+      }
+      return eb.or(conditions)
+    })
   }
 
   if (filters.rating_min != null) {
