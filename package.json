@@ -15,7 +15,7 @@
     "db:migrate:new": "tsx node_modules/.bin/kysely migrate:make"
   },
   "dependencies": {
-    "@ai-sdk/gateway": "^3.0.63",
+    "@ai-sdk/openai-compatible": "^2.0.37",
     "@tailwindcss/postcss": "^4",
     "ai": "^6.0.111",
     "archiver": "^7.0.1",

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { FileText, BookOpen, Loader2, ExternalLink } from 'lucide-react'
+import { FileText, BookOpen, Loader2, ExternalLink, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -146,7 +146,12 @@ export function RulesSummarySection({
             </Button>
           )}
         </div>
-        {error && <p className="text-xs text-destructive">{error}</p>}
+        {error && (
+          <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
       </div>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
