@@ -12,6 +12,11 @@ export type GenerateSummaryResult = { summary?: string; error?: string }
 
 const MAX_CHARS = 80_000
 const LLM_BASE_URL = process.env.LLM_BASE_URL ?? 'http://console.localdomain:8080/v1'
+// llama-swap routes by model id, so the old llama-server placeholder "default" no longer resolves
+const LLM_MODEL =
+  process.env.LLM_MODEL && process.env.LLM_MODEL !== 'default' ? process.env.LLM_MODEL : 'gemma-4-26b-ik-g4'
+// Gemma 4 thinks before answering and the reasoning counts toward the output budget
+const MAX_OUTPUT_TOKENS = 8000
 
 const llm = createOpenAICompatible({
   name: 'llama',
@@ -52,8 +57,8 @@ export async function generateRulesSummaryAction(gameId: number): Promise<Genera
   let summary: string
   try {
     const result = await generateText({
-      model: llm(process.env.LLM_MODEL ?? 'default'),
-      maxOutputTokens: 1500,
+      model: llm(LLM_MODEL),
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
       prompt: `You are a concise board game assistant. Given rulebook text for "${game.name}", write a practical quick-start summary that covers:
 
 ## Objective
@@ -77,12 +82,17 @@ Rulebook text:
 ${textToSend}`,
     })
     summary = result.text.trim()
+    if (!summary) {
+      return {
+        error: `The LLM returned no summary (finish reason: ${result.finishReason}). It may have run out of output tokens while thinking.`,
+      }
+    }
   } catch (err) {
     console.error('LLM generation failed:', err)
     const message = err instanceof Error ? err.message : String(err)
     if (message.includes('ECONNREFUSED') || message.includes('fetch failed') || message.includes('ENOTFOUND')) {
       return {
-        error: `Could not connect to local LLM server at ${LLM_BASE_URL}. Make sure llama.cpp is running (e.g. "llama-server -m model.gguf"). Raw error: ${message}`,
+        error: `Could not connect to local LLM server at ${LLM_BASE_URL}. Make sure llama-swap is running on the AI box. Raw error: ${message}`,
       }
     }
     return { error: `LLM generation failed: ${message}` }
