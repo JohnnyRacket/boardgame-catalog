@@ -5,7 +5,7 @@ import { gamesToCsv, csvToRawRows } from '@/lib/backup/csv'
 import { importRowSchema } from '@/lib/backup/importSchema'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import path from 'path'
-import archiver from 'archiver'
+import { ZipArchive } from 'archiver'
 import unzipper from 'unzipper'
 import { PassThrough } from 'stream'
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     const passThrough = new PassThrough()
-    const archive = archiver('zip', { zlib: { level: 6 } })
+    const archive = new ZipArchive({ zlib: { level: 6 } })
 
     archive.on('warning', (err) => {
       if (err.code !== 'ENOENT') throw err

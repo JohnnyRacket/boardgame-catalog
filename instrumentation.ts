@@ -1,7 +1,7 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { db } = await import('./lib/db')
-    const { Migrator, FileMigrationProvider } = await import('kysely')
+    const { Migrator, FileMigrationProvider } = await import('kysely/migration')
     const { promises: fs } = await import('fs')
     const path = await import('path')
 
