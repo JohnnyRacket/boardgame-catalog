@@ -23,11 +23,12 @@ type Step =
 interface BggImportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  initialQuery?: string
 }
 
-export function BggImportDialog({ open, onOpenChange }: BggImportDialogProps) {
+export function BggImportDialog({ open, onOpenChange, initialQuery = '' }: BggImportDialogProps) {
   const [step, setStep] = useState<Step>({ kind: 'search' })
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialQuery)
   const [results, setResults] = useState<BggSearchResult[]>([])
   const [selectingId, setSelectingId] = useState<number | null>(null)
   const [duplicateNames, setDuplicateNames] = useState<Set<string>>(new Set())
@@ -38,7 +39,7 @@ export function BggImportDialog({ open, onOpenChange }: BggImportDialogProps) {
   function handleOpenChange(next: boolean) {
     if (!next) {
       setStep({ kind: 'search' })
-      setQuery('')
+      setQuery(initialQuery)
       setResults([])
       setSelectingId(null)
       setError(null)

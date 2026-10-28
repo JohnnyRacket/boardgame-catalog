@@ -3,26 +3,16 @@
 import path from 'path'
 import { readFile } from 'fs/promises'
 import { generateText } from 'ai'
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { extractText } from 'unpdf'
 import { revalidatePath } from 'next/cache'
 import { getGameById, updateGameRulesSummary } from '@/lib/db/queries'
+import { llm, LLM_MODEL, describeLlmError } from '@/lib/llm'
 
 export type GenerateSummaryResult = { summary?: string; error?: string }
 
 const MAX_CHARS = 80_000
-const LLM_BASE_URL = process.env.LLM_BASE_URL ?? 'http://console.localdomain:8080/v1'
-// llama-swap routes by model id, so the old llama-server placeholder "default" no longer resolves
-const LLM_MODEL =
-  process.env.LLM_MODEL && process.env.LLM_MODEL !== 'default' ? process.env.LLM_MODEL : 'gemma-4-26b-ik-g4'
 // Gemma 4 thinks before answering and the reasoning counts toward the output budget
 const MAX_OUTPUT_TOKENS = 8000
-
-const llm = createOpenAICompatible({
-  name: 'llama',
-  baseURL: LLM_BASE_URL,
-  apiKey: process.env.LLM_API_KEY ?? 'not-needed',
-})
 
 export async function generateRulesSummaryAction(gameId: number): Promise<GenerateSummaryResult> {
   const game = await getGameById(gameId)
@@ -89,13 +79,7 @@ ${textToSend}`,
     }
   } catch (err) {
     console.error('LLM generation failed:', err)
-    const message = err instanceof Error ? err.message : String(err)
-    if (message.includes('ECONNREFUSED') || message.includes('fetch failed') || message.includes('ENOTFOUND')) {
-      return {
-        error: `Could not connect to local LLM server at ${LLM_BASE_URL}. Make sure llama-swap is running on the AI box. Raw error: ${message}`,
-      }
-    }
-    return { error: `LLM generation failed: ${message}` }
+    return { error: describeLlmError(err) }
   }
 
   try {
